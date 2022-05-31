@@ -1,0 +1,15 @@
+Verficação das funções:
+
+- Coordenadas: Ok
+- Matriz: Ok
+- Pilha: Ok
+- Fila: Ok
+- Percorrer: Ok, 'refiz' separando por classes, conforme a ordem do documento do trabalho.
+- Main:
+
+Testes:
+- Falhas:
+  -
+
+- Corretos:
+  -
