@@ -1,12 +1,10 @@
-package labirinto;
-
 import java.lang.reflect.*;
 
 public class Fila <X> implements Cloneable
 {
-    private Object[] elemento; //private X[] elemento;
+    private Object[] elemento; // private X[] elemento;
     private int      tamanhoInicial;
-    private int      ultimo=-1; //vazio
+    private int      primeiro=0, ultimo=0, quantos=0; //vazio
 
     public Fila (int tamanho) throws Exception
     {
@@ -28,10 +26,17 @@ public class Fila <X> implements Cloneable
         // X[] novo = new X [Math.round(this.elemento.length*fator)];
         Object[] novo = new Object [Math.round(this.elemento.length*fator)];
         
-        for(int i=0; i<=this.ultimo; i++)
-            novo[i] = this.elemento[i];
-
+        int posNoThisElemento=this.primeiro, posNoNovo=0;
+        for(int i=0; i<this.quantos; i++)
+        {
+            novo[posNoNovo]   = this.elemento[posNoThisElemento];
+            posNoNovo         = (posNoNovo        +1) % novo.length;          // aumento circular
+            posNoThisElemento = (posNoThisElemento+1) % this.elemento.length; // aumento circular 
+        }
+        
         this.elemento = novo;
+        this.primeiro = 0;
+        this.ultimo   = this.quantos;
     }
 
     private X meuCloneDeX (X x)
@@ -61,73 +66,95 @@ public class Fila <X> implements Cloneable
         if (x==null)
             throw new Exception ("Falta o que guardar");
 
-        if (this.ultimo+1==this.elemento.length) // cheia
+        if (this.quantos==this.elemento.length) // cheia
             this.redimensioneSe (2.0F);
 
-        this.ultimo++;
-
         if (x instanceof Cloneable)
-            this.elemento[this.ultimo]=meuCloneDeX(x);
+            this.elemento[this.ultimo]=meuCloneDeX(x); // x.clone();
         else
             this.elemento[this.ultimo]=x;
+        /*
+        if (this.ultimo<this.elemento.length-1)
+            this.ultimo++;
+        else
+            this.ultimo=0;
+        */            
+        this.ultimo = (this.ultimo+1) % this.elemento.length; // aumento circular
     }
 
     public X recupereUmItem () throws Exception // FIFO
     {
-        if (this.ultimo==-1) // vazia
+        if (this.quantos==0) // vazia
             throw new Exception ("Nada a recuperar");
 
         X ret=null;
-        if (this.elemento[0] instanceof Cloneable)
-            ret = meuCloneDeX((X)this.elemento[0]);
+        if (this.elemento[this.primeiro] instanceof Cloneable)
+            ret = meuCloneDeX((X)this.elemento[this.primeiro]);
         else
-            ret = (X)this.elemento[0];
+            ret = (X)this.elemento[this.primeiro];
 
         return ret;
     }
 
     public void removaUmItem () throws Exception // FIFO
     {
-        if (this.ultimo==-1) // vazia
+        if (this.quantos==0) // vazia
             throw new Exception ("Nada a remover");
 
-        for (int i=1; i<=this.ultimo; i++)
-            this.elemento[i-1] = this.elemento[i];
+        this.elemento[this.primeiro] = null;
+        
+        /*
+        if (this.primeiro<this.elemento.length-1)
+            this.primeiro++;
+        else
+            this.primeiro=0;
+        */
+        this.primeiro = (this.primeiro+1) % this.elemento.length; // aumento circular
 
-        this.elemento[this.ultimo] = null;
-        this.ultimo--;
+        this.quantos--;
 
         if (this.elemento.length>this.tamanhoInicial &&
-            this.ultimo+1<=Math.round(this.elemento.length*0.25F))
+            this.quantos<=Math.round(this.elemento.length*0.25F))
             this.redimensioneSe (0.5F);
     }
-
+    /*
     public boolean isCheia ()
     {
-        if(this.ultimo+1==this.elemento.length)
+        if(this.quantos==this.elemento.length)
             return true;
 
         return false;
     }
-
+    */
+    public boolean isCheia ()
+    {
+        return this.quantos==this.elemento.length;
+    }
+    /*
     public boolean isVazia ()
     {
-        if(this.ultimo==-1)
+        if(this.quantos==0)
             return true;
 
         return false;
+    }
+    */
+    public boolean isVazia ()
+    {
+        return this.quantos==0;
     }
 
     public String toString ()
     {
-        String ret = (this.ultimo+1) + " elemento(s)";
+        String ret = (this.quantos) + " elemento(s)";
         
-        if (this.ultimo!=-1)
-            ret += ", sendo o primeiro "+this.elemento[0];
+        if (this.quantos!=0)
+            ret += ", sendo o primeiro "+this.elemento[this.primeiro];
             
         return ret;
     }
 
+    // equals compara this e obj
     public boolean equals (Object obj)
     {
         if(this==obj)
@@ -141,15 +168,21 @@ public class Fila <X> implements Cloneable
 
         Fila<X> fil = (Fila<X>) obj;
 
-        if(this.ultimo!=fil.ultimo)
+        if(this.quantos!=fil.quantos)
             return false;
 
         if(this.tamanhoInicial!=fil.tamanhoInicial)
             return false;
 
-        for(int i=0 ; i<this.ultimo;i++)
-            if(!this.elemento[i].equals(fil.elemento[i]))
+        int posNoThisElemento=this.primeiro, posNoFilElemento=fil.primeiro;
+        for(int i=0 ; i<this.quantos; i++)
+        {
+            if(!this.elemento[posNoThisElemento].equals(fil.elemento[posNoFilElemento]))
                 return false;
+
+            posNoThisElemento = (posNoThisElemento+1) % this.elemento.length; // aumento circular
+            posNoFilElemento  = (posNoFilElemento +1) % fil .elemento.length; // aumento circular
+        }
 
         return true;
     }
@@ -158,12 +191,18 @@ public class Fila <X> implements Cloneable
     {
         int ret=666/*qualquer positivo*/;
 
+        ret = ret*7/*primo*/ + new Integer(this.primeiro      ).hashCode();
         ret = ret*7/*primo*/ + new Integer(this.ultimo        ).hashCode();
+        ret = ret*7/*primo*/ + new Integer(this.quantos       ).hashCode();
         ret = ret*7/*primo*/ + new Integer(this.tamanhoInicial).hashCode();
 
-        for (int i=0; i<this.ultimo; i++)
-            ret = ret*7/*primo*/ + this.elemento[i].hashCode();
-
+        int posNoThisElemento=this.primeiro;
+        for (int i=0; i<this.quantos; i++)
+        {
+            ret = ret*7/*primo*/ + this.elemento[posNoThisElemento].hashCode();
+            posNoThisElemento = (posNoThisElemento+1) % this.elemento.length; // aumento circular
+        }
+        
         if (ret<0)
             ret=-ret;
 
@@ -176,17 +215,20 @@ public class Fila <X> implements Cloneable
         if(modelo == null)
             throw new Exception("Modelo ausente");
 
-        this.tamanhoInicial = modelo.tamanhoInicial;
+		this.primeiro       = modelo.primeiro;
         this.ultimo         = modelo.ultimo;
+        this.quantos        = modelo.quantos;
+        this.tamanhoInicial = modelo.tamanhoInicial;
 
-        // para fazer a copia dum vetor precisa criar um vetor novo, com new
-        // nao pode fazer this.elemento=modelo.element
-        // pois se assim fizermos estaremos com dois objetos,  
-        // o this e o modelo, compartilhando o mesmo vetor
-        this.elemento = new Object[modelo.elemento.length]; // this.elemento = new X [modelo.elemento.length];
+        //this.elemento = new X [modelo.elemento.length];
+        this.elemento = new Object[modelo.elemento.length];
 
-        for(int i=0 ; i<modelo.elemento.length ; i++)
-            this.elemento[i] = modelo.elemento[i];
+		int pos=modelo.primeiro;
+        for(int i=0 ; i<modelo.quantos; i++)
+        {
+            this.elemento[pos] = modelo.elemento[pos];
+            pos = (pos+1) % modelo.elemento.length; // aumento circular
+		}
     }
 
     public Object clone ()

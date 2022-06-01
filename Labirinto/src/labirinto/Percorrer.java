@@ -46,7 +46,7 @@ public class Percorrer {
   }
 
   //Função para pegar algum elemento do caminho do labirinto
-  private String getElemento() throws Exception
+  String getElemento() throws Exception
   {
     int linha = 1;
     String getElemento = "";
